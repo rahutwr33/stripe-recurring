@@ -1,0 +1,20 @@
+{
+  "name": "striperecurring",
+  "version": "0.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+   
+  ],
+  "author": "rahultwr33",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "dotenv": "^6.2.0",
+    "express": "^4.16.4",
+    "nunjucks": "^3.1.7",
+    "stripe": "^6.25.1"
+  }
+}
