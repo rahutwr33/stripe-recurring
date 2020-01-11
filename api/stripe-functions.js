@@ -2,7 +2,7 @@
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_API_KEY);
 const UTILS = require('../utils/format-numbers.js');
-
+const moment = require('moment')
 function getAllProductsAndPlans() {
   return Promise.all(
     [
@@ -56,20 +56,35 @@ function createPlan(requestBody) {
 }
 
 
-function createCustomerAndSubscription(requestBody) {
-  return stripe.customers.create({
+ function createCustomerAndSubscription(req,res,product,plan,requestBody) {
+   stripe.customers.create({
     source: requestBody.stripeToken,
     email: requestBody.customerEmail
-  }).then(customer => {
+  },(err,customer)=>{
+    if(err){
+      return res.render('signup.html', {product: product, plan: plan, error: true});
+    }
     stripe.subscriptions.create({
-      customer: customer.id,
-      items: [
-        {
-          plan: requestBody.planId
+      trial_period_days: "15",
+      off_session: "true",
+      enable_incomplete_payments: "false",
+      collection_method: "charge_automatically",
+      items: {
+        "0": {
+          plan: requestBody.planId,
+          quantity: "1"
         }
-      ]
+      },
+      customer: customer.id,
+      cancel_at:moment().add(1, 'y').format("X")
+    },(error,subscriptions)=>{
+      console.log('error', error)
+      if(error){
+        return res.render('signup.html', {product: product, plan: plan, error: true});
+      }
+      return res.render('signup.html', {product: product, plan: plan, success: true});
     });
-  });
+  })
 }
 
 

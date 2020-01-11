@@ -7,6 +7,9 @@ const port = 3000;
 const router = express.Router();
 
 const STRIPE_API = require('./api/stripe-functions.js');
+// webhook secret
+const endpointSecret = '**********';
+const stripe = require('stripe')(process.env.STRIPE_API_KEY);
 
 
 /* Set up Express to serve HTML files using "res.render" with help of Nunjucks */
@@ -96,12 +99,37 @@ router.post('/processPayment', (req, res) => {
     interval: req.body.planInterval,
     interval_count: req.body.planIntervalCount
   }
+  STRIPE_API.createCustomerAndSubscription(req,res,product,plan,req.body)
+  // .then(() => {
+  //   res.render('signup.html', {product: product, plan: plan, success: true});
+  // }).catch(err => {
+  //   res.render('signup.html', {product: product, plan: plan, error: true});
+  // });
+});
 
-  STRIPE_API.createCustomerAndSubscription(req.body).then(() => {
-    res.render('signup.html', {product: product, plan: plan, success: true});
-  }).catch(err => {
-    res.render('signup.html', {product: product, plan: plan, error: true});
-  });
+app.post('/api/paymentsuccess', bodyParser.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  }
+  catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = event.data.object;
+      break;
+    case 'payment_method.attached':
+      const paymentMethod = event.data.object;
+      handlePaymentMethodAttached(paymentMethod);
+      break;
+    default:
+      return response.status(400).end();
+  }
+     response.json({received: true});
 });
 
 
